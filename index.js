@@ -7,6 +7,7 @@ const {
   verificarCredenciales,
   obtenerUsuario,
 } = require('./consultas.js');
+const { verificacionToken } = require('./middlewares.js');
 
 const puerto = 3000;
 const urlBase = `http://localhost:${puerto}`;
@@ -43,13 +44,11 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.get('/usuarios', async (req, res) => {
+app.get('/usuarios', verificacionToken, async (req, res) => {
   try {
     const Authorization = req.header('Authorization');
     const token = Authorization.split('Bearer ')[1];
-    jwt.verify(token, 'llaveParaCifradoDePasswordconJWT');
-    const payload = jwt.decode(token, 'llaveParaCifradoDePasswordconJWT');
-    const email = payload.email;
+    const { email } = jwt.decode(token, 'llaveParaCifradoDePasswordconJWT');
     const usuario = await obtenerUsuario(email);
     res.send(usuario);
   } catch (err) {

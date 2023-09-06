@@ -72,7 +72,6 @@ const obtenerUsuario = async (email) => {
   const consulta = 'SELECT * FROM usuarios WHERE email = $1';
   const values = [email];
   const { rows } = await pool.query(consulta, values);
-  console.log(rows);
   return rows[0];
 };
 
