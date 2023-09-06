@@ -1,7 +1,12 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
-const { registrarUsuario } = require('./consultas.js');
+const jwt = require('jsonwebtoken');
+const {
+  registrarUsuario,
+  verificarCredenciales,
+  obtenerUsuario,
+} = require('./consultas.js');
 
 const puerto = 3000;
 const urlBase = `http://localhost:${puerto}`;
@@ -10,17 +15,44 @@ app.listen(puerto, console.log(`Servidor iniciado en ${urlBase}`));
 app.use(cors());
 app.use(express.json());
 
-// Creación del usuario
-
 app.post('/usuarios', async (req, res) => {
   try {
     const usuario = req.body;
     await registrarUsuario(usuario);
-    res.status(200).send('Usuario creado');
+    res.send('Usuario creado');
   } catch (err) {
-    console.error("Error al crear usuario en app.post('/usuarios'");
+    console.error("Error al crear usuario en app.post('/usuarios')");
     res.status(500).send(err);
   }
 });
 
-// Inicio de sesión
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const result = await verificarCredenciales(email, password);
+
+    if (!result.error) {
+      const token = jwt.sign({ email }, 'llaveParaCifradoDePasswordconJWT');
+      res.send(token);
+    } else {
+      res.status(400).send(result.msg);
+    }
+  } catch (err) {
+    console.error("Error al validar usuario en app.post('/login')");
+    res.status(500).send(err);
+  }
+});
+
+app.get('/usuarios', async (req, res) => {
+  try {
+    const Authorization = req.header('Authorization');
+    const token = Authorization.split('Bearer ')[1];
+    jwt.verify(token, 'llaveParaCifradoDePasswordconJWT');
+    const payload = jwt.decode(token, 'llaveParaCifradoDePasswordconJWT');
+    const email = payload.email;
+    const usuario = await obtenerUsuario(email);
+    res.send(usuario);
+  } catch (err) {
+    res.status(err.code || 500).send(err);
+  }
+});
